@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
+    <title>天津地铁8号线 · 运行计算器</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: #f3e8ff;
+            background-image: radial-gradient(circle at 10% 20%, #ede0ff 0%, #d9c4f0 100%);
+            min-height: 100vh;
+            padding: 20px 16px 40px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+        .container {
+            max-width: 700px;
+            width: 100%;
+            background: rgba(255,255,255,0.92);
+            backdrop-filter: blur(2px);
+            border-radius: 36px;
+            padding: 28px 24px 32px;
+            box-shadow: 0 25px 50px -12px rgba(123, 63, 159, 0.30);
+            border: 1px solid rgba(255,255,255,0.5);
+            transition: all 0.3s;
+            animation: fadeUp 0.6s ease-out;
+        }
+        @keyframes fadeUp {
+            0% { opacity: 0; transform: translateY(20px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: #3b1f4a;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 2px;
+        }
+        h1 small {
+            font-size: 16px;
+            font-weight: 400;
+            color: #7B3F9F;
+            margin-left: 4px;
+        }
+        .subtitle {
+            font-size: 14px;
+            color: #5e4a6b;
+            margin-bottom: 24px;
+            padding-left: 14px;
+            border-left: 4px solid #7B3F9F;
+            background: #f7f0fc;
+            border-radius: 4px;
+            padding: 10px 16px;
+            line-height: 1.6;
+        }
+        .query-box {
+            background: #faf5ff;
+            border-radius: 24px;
+            padding: 20px 18px 24px;
+            border: 1px solid #e6d5f0;
+        }
+        .field-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 16px;
+        }
+        .field-group label {
+            font-weight: 600;
+            font-size: 15px;
+            color: #3b1f4a;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .field-group select, .field-group input {
+            padding: 12px 16px;
+            border-radius: 16px;
+            border: 1.5px solid #dcc8e8;
+            background: white;
+            font-size: 16px;
+            color: #1f1a2b;
+            transition: 0.2s;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237B3F9F' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 16px center;
+            cursor: pointer;
+        }
+        .field-group select:focus, .field-group input:focus {
+            border-color: #7B3F9F;
+            box-shadow: 0 0 0 4px rgba(123, 63, 159, 0.15);
+            outline: none;
+        }
+        .flex-row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .flex-row .field-group {
+            flex: 1;
+            min-width: 140px;
+        }
+        .btn {
+            border: none;
+            border-radius: 40px;
+            padding: 14px 24px;
+            font-size: 17px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #7B3F9F, #9B59B6);
+            color: white;
+            box-shadow: 0 8px 20px rgba(123, 63, 159, 0.35);
+            flex: 1;
+        }
+        .btn-primary:hover { transform: scale(0.98); box-shadow: 0 4px 12px rgba(123,63,159,0.4); }
+        .btn-secondary {
+            background: #ede0f5;
+            color: #3b1f4a;
+        }
+        .btn-secondary:hover { background: #dcc8e8; }
+        .btn-copy {
+            background: #eaf3ff;
+            color: #1a3f6b;
+        }
+        .btn-copy:hover { background: #d4e2f7; }
+        .result-area {
+            margin-top: 28px;
+            background: #ffffff;
+            border-radius: 24px;
+            padding: 20px 20px 18px;
+            border: 1px solid #eddff5;
+            box-shadow: 0 4px 12px rgba(123,63,159,0.06);
+        }
+        .result-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            padding: 8px 0;
+            border-bottom: 1px dashed #f0e6f5;
+        }
+        .result-row:last-child { border-bottom: none; }
+        .result-label { font-size: 15px; color: #4d3a5c; }
+        .result-value { font-weight: 600; font-size: 20px; color: #2d1a3a; }
+        .result-value.time { font-size: 28px; color: #7B3F9F; letter-spacing: 0.5px; }
+        .result-value .unit { font-size: 15px; font-weight: 400; color: #7a658a; margin-left: 4px; }
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #3b1f4a;
+            margin: 20px 0 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .section-title span { font-size: 14px; font-weight: 400; color: #7a658a; }
+        .time-table {
+            background: #faf5ff;
+            border-radius: 16px;
+            padding: 12px 16px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-size: 15px;
+            border: 1px solid #eddff5;
+        }
+        .time-table table { width: 100%; border-collapse: collapse; }
+        .time-table th { text-align: left; font-weight: 600; color: #3b1f4a; padding: 6px 4px; border-bottom: 2px solid #dcc8e8; }
+        .time-table td { padding: 6px 4px; border-bottom: 1px solid #ede0f5; }
+        .time-table tr:last-child td { border-bottom: none; }
+        .canvas-wrapper {
+            background: #f7f0fc;
+            border-radius: 16px;
+            padding: 12px;
+            margin-top: 12px;
+            border: 1px solid #eddff5;
+            overflow-x: auto;
+        }
+        canvas { display: block; width: 100%; height: auto; background: white; border-radius: 12px; }
+        .formula-box {
+            background: #f7f0fc;
+            border-radius: 16px;
+            padding: 14px 18px;
+            margin-top: 16px;
+            border-left: 4px solid #7B3F9F;
+            font-size: 14px;
+            color: #2d1a3a;
+            line-height: 1.8;
+            white-space: pre-wrap;
+            word-break: break-word;
+            display: none;
+        }
+        .formula-box.show { display: block; animation: fadeUp 0.3s; }
+        .copy-area {
+            background: #f7faff;
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-top: 12px;
+            border: 1px dashed #b8a0c9;
+            font-size: 13px;
+            color: #4d3a5c;
+            white-space: pre-wrap;
+            word-break: break-all;
+            display: none;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .copy-area.show { display: block; }
+        .footer {
+            margin-top: 28px;
+            text-align: center;
+            font-size: 13px;
+            color: #7a658a;
+            border-top: 1px solid #ede0f5;
+            padding-top: 18px;
+        }
+        .footer a { color: #7B3F9F; text-decoration: none; font-weight: 500; }
+        .badge {
+            background: #ede0f5;
+            color: #3b1f4a;
+            font-size: 12px;
+            padding: 2px 14px;
+            border-radius: 30px;
+            font-weight: 500;
+        }
+        .btn-group { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+        .btn-group .btn { flex: 1; min-width: 100px; }
+        @media (max-width: 480px) {
+            .container { padding: 16px; }
+            .result-value.time { font-size: 22px; }
+        }
+    </style>
+</head>
+<body>
+<div class="container" id="app">
+    <h1>
+        🚇 天津地铁8号线
+        <small>运行计算器</small>
+    </h1>
+    <div class="subtitle">
+        🟣 6A车 · GoA4 · 最高80km/h<br>
+        <span style="font-size:13px;">停站时间各摊50%（总耗时）｜完整停站用于时刻推算</span>
+    </div>
+
+    <!-- 查询区 -->
+    <div class="query-box">
+        <div class="flex-row">
+            <div class="field-group">
+                <label>🟢 起点站</label>
+                <select id="startSelect"></select>
+            </div>
+            <div class="field-group">
+                <label>🔴 终点站</label>
+                <select id="endSelect"></select>
+            </div>
+        </div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button class="btn btn-primary" onclick="calc()">📊 计算</button>
+            <button class="btn btn-secondary" onclick="swapStations()">⇄ 交换</button>
+        </div>
+        <!-- 时刻输入 -->
+        <div class="field-group" style="margin-top: 18px;">
+            <label>⏰ 起点站到达时刻（可选，用于推算后续站）</label>
+            <input type="time" id="startTimeInput" value="06:30" step="1">
+            <button class="btn btn-secondary" style="margin-top:6px;" onclick="calcTimes()">🕐 推算各站时刻</button>
+        </div>
+    </div>
+
+    <!-- 结果区 -->
+    <div class="result-area" id="resultArea">
+        <div class="result-row">
+            <span class="result-label">⏱ 总耗时（秒）</span>
+            <span class="result-value" id="secondsDisplay">—</span>
+        </div>
+        <div class="result-row">
+            <span class="result-label">🕐 可读耗时</span>
+            <span class="result-value time" id="timeDisplay">请选择起终点</span>
+        </div>
+        <div class="result-row">
+            <span class="result-label">📏 区间数</span>
+            <span class="result-value" id="countDisplay" style="font-size:18px; font-weight:400;">—</span>
+        </div>
+        <div class="btn-group">
+            <button class="btn btn-copy" onclick="copyResult()">📋 复制结果</button>
+            <button class="btn btn-secondary" onclick="toggleFormula()">📐 公式拆解</button>
+        </div>
+        <div id="formulaBox" class="formula-box"></div>
+        <div id="copyArea" class="copy-area"></div>
+    </div>
+
+    <!-- 时刻表 -->
+    <div id="timeTableSection" style="display:none; margin-top: 20px;">
+        <div class="section-title">🕒 各站预计到达时刻 <span>（停稳时刻）</span></div>
+        <div class="time-table" id="timeTableBody"></div>
+    </div>
+
+    <!-- 速度曲线 -->
+    <div style="margin-top: 24px;">
+        <div class="section-title">📈 速度曲线 <span>（含停站）</span></div>
+        <div class="canvas-wrapper">
+            <canvas id="speedCanvas" width="800" height="300"></canvas>
+        </div>
+    </div>
+
+    <!-- 区间明细 -->
+    <div style="margin-top: 24px;">
+        <div class="section-title">📋 区间明细 <span>（点击展开）</span></div>
+        <div style="background:#faf5ff; border-radius:16px; padding:12px; border:1px solid #eddff5; max-height:240px; overflow-y:auto; font-size:14px;" id="segmentDetail">
+            <table style="width:100%; border-collapse:collapse; font-size:13px;">
+                <thead><tr><th>区间</th><th>长度(m)</th><th>类型</th><th>纯轮动(s)</th><th>总耗时(s)</th></tr></thead>
+                <tbody id="segmentTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="footer">
+        数据基于环评及牵引计算 · <a href="#" onclick="alert('欢迎Fork & 提交PR！\nGitHub: tj-metro-calculator')">开源项目</a> · 仅供爱好者参考
+    </div>
+</div>
+
+<script>
+    // ============================================================
+    // 1. 核心数据（中北方向，从咸水沽西 → 中北）
+    // ============================================================
+    const stations = [
+        "咸水沽西", "和慧南路", "南开大学津南校区", "海河教育园区",
+        "天津大学北洋园校区", "景荔道", "景荷道", "双港", "渌水道",
+        "长泰河东", "沂山路", "南珠桥", "梅江道东", "澧水道", "土城",
+        "湘江道", "下瓦房", "人民公园", "马场道", "成都道", "西康路",
+        "天津大学六里台", "南丰路", "鞍山西道", "兰坪路", "绿水公园",
+        "雅安道", "南泥湾路", "福姜路", "中北"
+    ];
+
+    const segments = [
+        { length: 981, type: '标准站' },
+        { length: 1500, type: '标准站' },
+        { length: 1600, type: '标准站' },
+        { length: 1100, type: '标准站' },
+        { length: 2600, type: '标准站' },
+        { length: 1000, type: '标准站' },
+        { length: 1150, type: '标准站' },
+        { length: 1900, type: '标准站' },
+        { length: 2000, type: '换乘站' },
+        { length: 1332.382, type: '标准站' },
+        { length: 1346.363, type: '标准站' },
+        { length: 746.629, type: '换乘站' },
+        { length: 1569.568, type: '标准站' },
+        { length: 763.24, type: '换乘站' },
+        { length: 1143.85, type: '换乘站' },
+        { length: 891.594, type: '标准站' },
+        { length: 922.563, type: '换乘站' },
+        { length: 912.299, type: '标准站' },
+        { length: 1134.878, type: '标准站' },
+        { length: 810.386, type: '标准站' },
+        { length: 789.918, type: '换乘站' },
+        { length: 1163.077, type: '换乘站' },
+        { length: 1460.748, type: '标准站' },
+        { length: 836.426, type: '换乘站' },
+        { length: 760.835, type: '标准站' },
+        { length: 1200, type: '标准站' },
+        { length: 750, type: '标准站' },
+        { length: 1500, type: '标准站' },
+        { length: 1500, type: '标准站' }
+    ];
+
+    // ============================================================
+    // 2. 物理参数
+    // ============================================================
+    const V_MAX_KMH = 80;
+    const V_MAX = V_MAX_KMH / 3.6; // m/s
+    const A_ACC = 0.9;
+    const A_BRK = 1.0;
+    const T_START_LOSS = 1.5;
+    const T_BRAKE_LOSS = 2.0;
+    const STOP_STD = 30;
+    const STOP_TRANS = 40;
+
+    // ============================================================
+    // 3. 预计算每个区间
+    // ============================================================
+    function calcSegmentRaw(seg) {
+        const L = seg.length;
+        const V = V_MAX;
+        const a1 = A_ACC;
+        const a2 = A_BRK;
+        const L_crit = (V*V)/(2*a1) + (V*V)/(2*a2);
+        let T_theory;
+        let t_acc, t_dec, t_cruise, s_acc, s_dec, s_cruise;
+        if (L >= L_crit) {
+            t_acc = V / a1;
+            s_acc = V*V/(2*a1);
+            t_dec = V / a2;
+            s_dec = V*V/(2*a2);
+            s_cruise = L - s_acc - s_dec;
+            t_cruise = s_cruise / V;
+            T_theory = t_acc + t_cruise + t_dec;
+        } else {
+            // 三角
+            const V_peak = Math.sqrt(2 * L * a1 * a2 / (a1 + a2));
+            t_acc = V_peak / a1;
+            t_dec = V_peak / a2;
+            s_acc = V_peak*V_peak/(2*a1);
+            s_dec = V_peak*V_peak/(2*a2);
+            t_cruise = 0;
+            s_cruise = 0;
+            T_theory = t_acc + t_dec;
+        }
+        const rawMove = T_theory + T_START_LOSS + T_BRAKE_LOSS; // 含物理损耗
+        return { rawMove, t_acc, t_dec, t_cruise, s_acc, s_dec, s_cruise, V_peak: (t_cruise>0? V_MAX : Math.sqrt(2*L*A_ACC*A_BRK/(A_ACC+A_BRK))) };
+    }
+
+    // 预计算每个区间的详细数据
+    const segData = segments.map((seg, idx) => {
+        const { rawMove, t_acc, t_dec, t_cruise, s_acc, s_dec, s_cruise, V_peak } = calcSegmentRaw(seg);
+        const stopTime = (seg.type === '标准站') ? STOP_STD : STOP_TRANS;
+        // 总耗时（各取一半，用于查询累加）
+        const startStop = stopTime;
+        let nextStop = stopTime;
+        if (idx + 1 < segments.length) {
+            const nextType = segments[idx+1].type;
+            nextStop = (nextType === '标准站') ? STOP_STD : STOP_TRANS;
+        } else {
+            nextStop = STOP_STD; // 最后一站按标准站处理
+        }
+        const totalHalf = rawMove + startStop/2 + nextStop/2;
+        // 实际完整耗时（用于时刻推算：纯轮动 + 本站完整停站）
+        const actualTime = rawMove + startStop;
+        return {
+            rawMove,
+            t_acc, t_dec, t_cruise,
+            s_acc, s_dec, s_cruise,
+            V_peak,
+            stopTime,
+            totalHalf,
+            actualTime,
+            type: seg.type,
+            length: seg.length
+        };
+    });
+
+    // ============================================================
+    // 4. 查询函数（双向，累加总耗时 half）
+    // ============================================================
+    function getTimeBetween(startName, endName) {
+        const sIdx = stations.indexOf(startName);
+        const eIdx = stations.indexOf(endName);
+        if (sIdx === -1 || eIdx === -1) return null;
+        if (sIdx === eIdx) return { total: 0, count: 0, startIdx: sIdx, endIdx: eIdx };
+        const from = Math.min(sIdx, eIdx);
+        const to = Math.max(sIdx, eIdx);
+        let sum = 0;
+        for (let i = from; i < to; i++) sum += segData[i].totalHalf;
+        return { total: sum, count: to - from, startIdx: from, endIdx: to, from: from, to: to };
+    }
+
+    // ============================================================
+    // 5. 时刻推算（基于完整停站 actualTime）
+    // ============================================================
+    function getTimeTable(startName, endName, startTimeStr) {
+    const sIdx = stations.indexOf(startName);
+    const eIdx = stations.indexOf(endName);
+    if (sIdx === -1 || eIdx === -1) return null;
+
+    // 解析用户输入的时间
+    const parts = startTimeStr.split(':');
+    if (parts.length < 2) return null;
+    const base = new Date();
+    base.setHours(parseInt(parts[0]), parseInt(parts[1]), parseInt(parts[2] || 0), 0);
+
+    const times = [];
+    let current = base.getTime();
+
+    if (sIdx === eIdx) {
+        // 起点终点相同，只返回一个站
+        times.push({ station: startName, time: new Date(current) });
+        return times;
+    }
+
+    if (sIdx < eIdx) {
+        // ✅ 正向（中北方向）：从 sIdx 向 eIdx 递增
+        for (let i = sIdx; i <= eIdx; i++) {
+            times.push({ station: stations[i], time: new Date(current) });
+            if (i < eIdx) {
+                current += segData[i].actualTime * 1000; // 加上区间完整耗时（含停站）
+            }
+        }
+    } else {
+        // ✅ 反向（反中北方向）：从 sIdx 向 eIdx 递减
+        for (let i = sIdx; i >= eIdx; i--) {
+            times.push({ station: stations[i], time: new Date(current) });
+            if (i > eIdx) {
+                current += segData[i - 1].actualTime * 1000; // 注意：反向时区间索引为 i-1
+            }
+        }
+    }
+    return times;
+}
+
+    // ============================================================
+    // 6. UI 交互
+    // ============================================================
+    let currentResult = null;
+    let currentTimes = null;
+
+    function populateSelects() {
+        const startSel = document.getElementById('startSelect');
+        const endSel = document.getElementById('endSelect');
+        stations.forEach(st => {
+            const o1 = document.createElement('option');
+            o1.value = st; o1.textContent = st;
+            startSel.appendChild(o1);
+            const o2 = document.createElement('option');
+            o2.value = st; o2.textContent = st;
+            endSel.appendChild(o2);
+        });
+        startSel.value = "天津大学北洋园校区";
+        endSel.value = "天津大学六里台";
+    }
+
+    function swapStations() {
+        const s = document.getElementById('startSelect');
+        const e = document.getElementById('endSelect');
+        const tmp = s.value; s.value = e.value; e.value = tmp;
+        calc();
+    }
+
+    function calc() {
+        const start = document.getElementById('startSelect').value;
+        const end = document.getElementById('endSelect').value;
+        const result = getTimeBetween(start, end);
+        currentResult = result;
+        const secDisplay = document.getElementById('secondsDisplay');
+        const timeDisplay = document.getElementById('timeDisplay');
+        const countDisplay = document.getElementById('countDisplay');
+        if (!result) {
+            secDisplay.textContent = '—';
+            timeDisplay.textContent = '❌ 站名有误';
+            countDisplay.textContent = '—';
+            return;
+        }
+        const total = result.total;
+        const count = result.count;
+        secDisplay.textContent = total.toFixed(2);
+        timeDisplay.textContent = formatTime(total);
+        countDisplay.textContent = count + ' 个区间';
+
+        // 更新速度曲线
+        drawSpeedCurve(result.from, result.to);
+        // 更新区间明细表
+        updateSegmentTable(result.from, result.to);
+        // 清空时刻表
+        document.getElementById('timeTableSection').style.display = 'none';
+        // 清空复制区
+        document.getElementById('copyArea').classList.remove('show');
+        // 隐藏公式
+        document.getElementById('formulaBox').classList.remove('show');
+    }
+
+    function calcTimes() {
+    const start = document.getElementById('startSelect').value;
+    const end = document.getElementById('endSelect').value;
+    const timeStr = document.getElementById('startTimeInput').value;
+
+    if (!timeStr) {
+        alert('请先输入起点站到达时刻（如 06:30）');
+        return;
+    }
+
+    const times = getTimeTable(start, end, timeStr);
+    if (!times) {
+        alert('站名有误，请检查起点站或终点站');
+        return;
+    }
+
+    currentTimes = times;
+    const section = document.getElementById('timeTableSection');
+    section.style.display = 'block';
+    const body = document.getElementById('timeTableBody');
+    let html = '<table><thead><tr><th>车站</th><th>到达时刻</th></tr></thead><tbody>';
+    times.forEach(item => {
+        const h = item.time.getHours().toString().padStart(2, '0');
+        const m = item.time.getMinutes().toString().padStart(2, '0');
+        const s = item.time.getSeconds().toString().padStart(2, '0');
+        html += `<tr><td>${item.station}</td><td>${h}:${m}:${s}</td></tr>`;
+    });
+    html += '</tbody></table>';
+    body.innerHTML = html;
+
+    // 更新复制内容（让复制结果里包含正确的时刻表）
+    updateCopyContent();
+    }
+
+    function formatTime(seconds) {
+        if (seconds === 0) return "0秒";
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        const s = Math.round((seconds % 60) * 10) / 10;
+        let parts = [];
+        if (h > 0) parts.push(h + "小时");
+        if (m > 0 || h > 0) parts.push(m + "分");
+        parts.push(s + "秒");
+        return parts.join("");
+    }
+
+    // ============================================================
+    // 7. 复制结果
+    // ============================================================
+    function copyResult() {
+        const start = document.getElementById('startSelect').value;
+        const end = document.getElementById('endSelect').value;
+        const totalSec = document.getElementById('secondsDisplay').textContent;
+        const totalTime = document.getElementById('timeDisplay').textContent;
+        let text = `🚇 天津地铁8号线 运行计算\n起点：${start}\n终点：${end}\n总耗时：${totalTime}（${totalSec}秒）\n区间数：${currentResult ? currentResult.count : '—'}\n`;
+        if (currentTimes) {
+            text += '\n各站预计到达时刻（起点站到达时刻：' + document.getElementById('startTimeInput').value + '）\n';
+            currentTimes.forEach(item => {
+                const h = item.time.getHours().toString().padStart(2,'0');
+                const m = item.time.getMinutes().toString().padStart(2,'0');
+                const s = item.time.getSeconds().toString().padStart(2,'0');
+                text += `${item.station} : ${h}:${m}:${s}\n`;
+            });
+        }
+        // 区间明细
+        if (currentResult) {
+            text += '\n区间明细：\n';
+            for (let i = currentResult.from; i < currentResult.to; i++) {
+                const seg = segData[i];
+                text += `${stations[i]} → ${stations[i+1]} : ${seg.totalHalf.toFixed(2)}秒\n`;
+            }
+        }
+        // 显示在复制区
+        const copyArea = document.getElementById('copyArea');
+        copyArea.textContent = text;
+        copyArea.classList.add('show');
+        // 复制到剪贴板
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('✅ 已复制到剪贴板！');
+            }).catch(() => {
+                // fallback
+                copyArea.select ? copyArea.select() : document.execCommand('selectAll');
+                document.execCommand('copy');
+                alert('✅ 已复制！');
+            });
+        } else {
+            // fallback
+            copyArea.select ? copyArea.select() : document.execCommand('selectAll');
+            document.execCommand('copy');
+            alert('✅ 已复制！');
+        }
+    }
+
+    function updateCopyContent() { /* 由calcTimes自动调用 */ }
+
+    // ============================================================
+    // 8. 公式拆解
+    // ============================================================
+    function toggleFormula() {
+        const box = document.getElementById('formulaBox');
+        if (box.classList.contains('show')) {
+            box.classList.remove('show');
+            return;
+        }
+        let html = '📐 物理参数\n';
+        html += `最高速度：${V_MAX_KMH} km/h (${V_MAX.toFixed(2)} m/s)\n`;
+        html += `启动加速度：${A_ACC} m/s²\n制动减速度：${A_BRK} m/s²\n`;
+        html += `启动损耗：${T_START_LOSS}s，制动对标损耗：${T_BRAKE_LOSS}s\n`;
+        html += `标准站停站：${STOP_STD}s，换乘站停站：${STOP_TRANS}s\n\n`;
+        html += '📐 区间纯轮动计算（梯形/三角）\n';
+        html += '临界距离 L_crit = V²/(2a_acc) + V²/(2a_brk)\n';
+        html += '若 L >= L_crit：T = V/a_acc + (L - V²/(2a_acc) - V²/(2a_brk))/V + V/a_brk\n';
+        html += '若 L < L_crit：T = sqrt(2L(a_acc+a_brk)/(a_acc·a_brk))\n';
+        html += '最终耗时 = 纯轮动 + 启停损耗 + 停站分摊（各取一半）\n';
+        if (currentResult) {
+            html += '\n当前查询区间数：' + currentResult.count + '\n';
+            html += '累加总耗时（各取一半）：' + currentResult.total.toFixed(2) + ' 秒\n';
+        }
+        box.textContent = html;
+        box.classList.add('show');
+    }
+
+    // ============================================================
+    // 9. 速度曲线绘制
+    // ============================================================
+    function drawSpeedCurve(fromIdx, toIdx) {
+        const canvas = document.getElementById('speedCanvas');
+        const ctx = canvas.getContext('2d');
+        const W = canvas.width, H = canvas.height;
+        ctx.clearRect(0, 0, W, H);
+        // 构建时间-速度点序列 (包含停站)
+        let points = []; // [{t, v}]
+        let currentT = 0;
+        const V_MAX_MS = V_MAX;
+        // 遍历区间 fromIdx 到 toIdx-1
+        for (let i = fromIdx; i < toIdx; i++) {
+            const seg = segData[i];
+            const { rawMove, t_acc, t_dec, t_cruise, V_peak, stopTime } = seg;
+            // 加速段 (0 -> V_peak)
+            if (t_acc > 0) {
+                // 模拟线性加速
+                const steps = 20;
+                for (let k = 0; k <= steps; k++) {
+                    const ratio = k / steps;
+                    const t = currentT + ratio * t_acc;
+                    const v = ratio * V_peak;
+                    points.push({ t, v });
+                }
+                currentT += t_acc;
+            }
+            // 匀速段 (如果存在)
+            if (t_cruise > 0) {
+                const steps = 10;
+                for (let k = 0; k <= steps; k++) {
+                    const ratio = k / steps;
+                    const t = currentT + ratio * t_cruise;
+                    points.push({ t, v: V_peak });
+                }
+                currentT += t_cruise;
+            }
+            // 减速段 (V_peak -> 0)
+            if (t_dec > 0) {
+                const steps = 20;
+                for (let k = 0; k <= steps; k++) {
+                    const ratio = k / steps;
+                    const t = currentT + ratio * t_dec;
+                    const v = V_peak * (1 - ratio);
+                    points.push({ t, v });
+                }
+                currentT += t_dec;
+            }
+            // 停站（速度=0），持续 stopTime 秒（实际停站时间，不是分摊）
+            if (i < toIdx - 1) { // 不是最后一个区间，因为最后一个区间到达终点后不再停站
+                const stopDuration = stopTime; // 完整停站
+                if (stopDuration > 0) {
+                    const steps = 5;
+                    for (let k = 0; k <= steps; k++) {
+                        const ratio = k / steps;
+                        const t = currentT + ratio * stopDuration;
+                        points.push({ t, v: 0 });
+                    }
+                    currentT += stopDuration;
+                }
+            }
+        }
+        // 确保最后一点速度0
+        if (points.length > 0 && points[points.length-1].v !== 0) {
+            points.push({ t: currentT, v: 0 });
+        }
+
+        if (points.length < 2) return;
+
+        // 绘图
+        const maxV = V_MAX_MS * 1.1;
+        const totalT = currentT + 1;
+        const margin = { top: 20, bottom: 30, left: 40, right: 20 };
+        const plotW = W - margin.left - margin.right;
+        const plotH = H - margin.top - margin.bottom;
+
+        function toCanvas(t, v) {
+            const x = margin.left + (t / totalT) * plotW;
+            const y = margin.top + plotH - (v / maxV) * plotH;
+            return { x, y };
+        }
+
+        ctx.beginPath();
+        points.forEach((p, idx) => {
+            const { x, y } = toCanvas(p.t, p.v);
+            if (idx === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        });
+        ctx.strokeStyle = '#7B3F9F';
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+
+        // 坐标轴
+        ctx.strokeStyle = '#888';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(margin.left, margin.top);
+        ctx.lineTo(margin.left, margin.top + plotH);
+        ctx.lineTo(margin.left + plotW, margin.top + plotH);
+        ctx.stroke();
+
+        // 标注
+        ctx.fillStyle = '#3b1f4a';
+        ctx.font = '12px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('时间 (s)', margin.left + plotW/2, H - 4);
+        ctx.save();
+        ctx.translate(14, margin.top + plotH/2);
+        ctx.rotate(-Math.PI/2);
+        ctx.textAlign = 'center';
+        ctx.fillText('速度 (m/s)', 0, 0);
+        ctx.restore();
+
+        // 刻度值
+        ctx.textAlign = 'right';
+        for (let v = 0; v <= maxV; v += 5) {
+            const y = margin.top + plotH - (v / maxV) * plotH;
+            ctx.fillText(v.toFixed(0), margin.left-6, y+4);
+        }
+        ctx.textAlign = 'center';
+        for (let t = 0; t <= totalT; t += 10) {
+            const x = margin.left + (t / totalT) * plotW;
+            ctx.fillText(t.toFixed(0), x, margin.top + plotH + 18);
+        }
+    }
+
+    // ============================================================
+    // 10. 区间明细表
+    // ============================================================
+    function updateSegmentTable(from, to) {
+        const tbody = document.getElementById('segmentTableBody');
+        let html = '';
+        for (let i = from; i < to; i++) {
+            const seg = segData[i];
+            html += `<tr><td>${stations[i]} → ${stations[i+1]}</td><td>${seg.length.toFixed(0)}</td><td>${seg.type}</td><td>${seg.rawMove.toFixed(2)}</td><td>${seg.totalHalf.toFixed(2)}</td></tr>`;
+        }
+        tbody.innerHTML = html;
+    }
+
+    // ============================================================
+    // 11. 初始化
+    // ============================================================
+    window.onload = function() {
+        populateSelects();
+        calc();
+        // 自动更新时刻表如果有输入
+        document.getElementById('startTimeInput').addEventListener('change', calcTimes);
+        document.getElementById('startTimeInput').addEventListener('input', calcTimes);
+    };
+</script>
+</body>
+</html>
