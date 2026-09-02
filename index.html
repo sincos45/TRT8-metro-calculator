@@ -6,15 +6,16 @@
     <title>天津地铁8号线 · 运行计算器</title>
     <style>
         :root {
-            --brand: #7a2ef2;
-            --brand-deep: #5b17c0;
-            --brand-soft: #efe4ff;
-            --ink: #241a36;
-            --ink-soft: #53486a;
-            --ink-faint: #7b7094;
-            --card: rgba(255,255,255,0.9);
-            --line: rgba(122,46,242,0.14);
-            --ring: rgba(122,46,242,0.45);
+            --brand: #6B3A8F;            /* 天津地铁8号线 线路标识紫 */
+            --brand-deep: #4a276b;
+            --brand-mid: #8053a8;
+            --brand-soft: #eee5f7;
+            --ink: #231a33;
+            --ink-soft: #51466b;
+            --ink-faint: #7c7096;
+            --card: rgba(255,255,255,0.86);
+            --line: rgba(107,58,143,0.16);
+            --ring: rgba(107,58,143,0.45);
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -25,13 +26,15 @@
             display: flex;
             justify-content: center;
             align-items: flex-start;
-            background-color: #f4ecff;
+            background-color: #f6f1fc;
             background-image:
-                radial-gradient(1100px 560px at 12% -8%, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0) 60%),
-                radial-gradient(880px 500px at 108% 8%, rgba(178,124,255,0.30) 0%, rgba(178,124,255,0) 55%),
-                radial-gradient(720px 720px at 50% 120%, rgba(216,182,255,0.38) 0%, rgba(216,182,255,0) 60%),
-                repeating-linear-gradient(135deg, rgba(108,43,217,0.035) 0px, rgba(108,43,217,0.035) 2px, transparent 2px, transparent 28px),
-                linear-gradient(160deg, #f6efff 0%, #e8d8fb 100%);
+                radial-gradient(1000px 520px at 8% -6%, rgba(255,255,255,0.98) 0%, rgba(255,255,255,0) 55%),
+                radial-gradient(760px 430px at 108% 4%, rgba(107,58,143,0.20) 0%, rgba(107,58,143,0) 55%),
+                radial-gradient(700px 700px at 76% 122%, rgba(128,83,168,0.18) 0%, rgba(128,83,168,0) 60%),
+                linear-gradient(rgba(107,58,143,0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(107,58,143,0.05) 1px, transparent 1px),
+                linear-gradient(165deg, #fbf9ff 0%, #f0e9f9 100%);
+            background-size: 100% 100%, 100% 100%, 100% 100%, 46px 46px, 46px 46px, 100% 100%;
             background-attachment: fixed;
         }
         .container {
@@ -57,8 +60,14 @@
             position: absolute;
             top: 0; left: 0; right: 0;
             height: 5px;
-            background: linear-gradient(90deg, var(--brand) 0%, #a04bff 30%, #c08bff 55%, #a04bff 80%, var(--brand) 100%);
+            background: linear-gradient(90deg, var(--brand) 0%, var(--brand-mid) 30%, #c9a2e8 55%, var(--brand-mid) 80%, var(--brand) 100%);
             opacity: 0.95;
+            background-size: 200% 100%;
+            animation: lineShimmer 6s linear infinite;
+        }
+        @keyframes lineShimmer {
+            0% { background-position: 0% 0; }
+            100% { background-position: 200% 0; }
         }
         @keyframes fadeUp {
             0% { opacity: 0; transform: translateY(20px); }
@@ -169,14 +178,14 @@
             outline-offset: 2px;
         }
         .btn-primary {
-            background: linear-gradient(135deg, #7a2ef2, #a64dff);
+            background: linear-gradient(135deg, #5d2f86, #8a54ac);
             color: white;
-            box-shadow: 0 10px 24px -10px rgba(108, 43, 217, 0.55);
+            box-shadow: 0 10px 24px -10px rgba(107, 58, 143, 0.55);
             flex: 1;
         }
         .btn-primary:hover {
             transform: translateY(-1px);
-            box-shadow: 0 14px 30px -12px rgba(108, 43, 217, 0.6);
+            box-shadow: 0 14px 30px -12px rgba(107, 58, 143, 0.6);
             filter: saturate(1.05);
         }
         .btn-primary:active { transform: translateY(0) scale(0.99); }
@@ -215,6 +224,7 @@
             color: var(--brand-deep);
             letter-spacing: 0.5px;
             font-weight: 800;
+            text-shadow: 0 0 24px rgba(107, 58, 143, 0.22);
         }
         .result-value .unit { font-size: 15px; font-weight: 400; color: var(--ink-faint); margin-left: 4px; }
         .section-title {
@@ -607,6 +617,7 @@
     // ============================================================
     let currentResult = null;
     let currentTimes = null;
+    let currentDisplayedSec = 0;
 
     function populateSelects() {
         const startSel = document.getElementById('startSelect');
@@ -647,7 +658,29 @@
         const total = result.total;
         const count = result.count;
         secDisplay.textContent = total.toFixed(2);
-        timeDisplay.textContent = formatTime(total);
+
+        // 耗时数字滚动动画
+        const prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (prefersReduced) {
+            timeDisplay.textContent = formatTime(total);
+        } else {
+            const fromVal = currentDisplayedSec || 0;
+            const toVal = total;
+            currentDisplayedSec = total;
+            const duration = 600;
+            const startTime = performance.now();
+            function tick(now) {
+                const elapsed = now - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const eased = 1 - Math.pow(1 - progress, 3);
+                const currentVal = fromVal + (toVal - fromVal) * eased;
+                timeDisplay.textContent = formatTime(currentVal);
+                if (progress < 1) requestAnimationFrame(tick);
+                else timeDisplay.textContent = formatTime(toVal);
+            }
+            requestAnimationFrame(tick);
+        }
+
         countDisplay.textContent = count + ' 个区间';
 
         // 更新速度曲线
