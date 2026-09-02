@@ -310,6 +310,25 @@
         }
         .btn-group { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
         .btn-group .btn { flex: 1; min-width: 100px; }
+        .curve-tools { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+        .btn-tool {
+            border: 1px solid var(--line);
+            background: #ffffff;
+            color: var(--brand);
+            border-radius: 12px;
+            min-width: 40px;
+            padding: 8px 14px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+            line-height: 1;
+            touch-action: manipulation;
+        }
+        .btn-tool:hover:not(:disabled) { background: var(--brand-soft); transform: translateY(-1px); }
+        .btn-tool:disabled { opacity: 0.4; cursor: not-allowed; }
+        .btn-tool:focus-visible { outline: 3px solid var(--ring); outline-offset: 1px; }
+        .curve-hint { font-size: 12.5px; color: var(--ink-faint); margin-left: auto; }
         /* ===== 双端适配：移动端 / 平板 / PC ===== */
         /* 平板及以上：加宽容器 */
         @media (min-width: 640px) {
@@ -413,6 +432,12 @@
     <!-- 速度曲线 -->
     <div style="margin-top: 24px;">
         <div class="section-title">📈 速度曲线 <span>（含停站）</span></div>
+        <div class="curve-tools">
+            <button class="btn-tool" id="speedZoomIn" onclick="speedZoomIn()" title="放大">＋</button>
+            <button class="btn-tool" id="speedZoomOut" onclick="speedZoomOut()" title="缩小">－</button>
+            <button class="btn-tool" id="speedZoomReset" onclick="speedReset()" title="复位">↺ 复位</button>
+            <span class="curve-hint" id="speedHint">滚轮缩放查看细节</span>
+        </div>
         <div class="canvas-wrapper">
             <canvas id="speedCanvas" width="800" height="300"></canvas>
         </div>
@@ -819,130 +844,256 @@
     }
 
     // ============================================================
-    // 9. 速度曲线绘制
+    // 9. 速度曲线绘制（支持缩放/平移查看细节，刻度自适应）
     // ============================================================
-    function drawSpeedCurve(fromIdx, toIdx) {
-        const canvas = document.getElementById('speedCanvas');
-        const ctx = canvas.getContext('2d');
-        const W = canvas.width, H = canvas.height;
-        ctx.clearRect(0, 0, W, H);
-        // 构建时间-速度点序列 (包含停站)
-        let points = []; // [{t, v}]
+    const SPEED_ZOOM_MIN = 1, SPEED_ZOOM_MAX = 10;
+    let speedView = { zoom: 1, pan: 0 };
+    let speedCache = { totalT: 1, windowT: 1, startT: 0 };
+    let lastSpeedPair = { from: 0, to: 1 };
+
+    function buildSpeedPoints(fromIdx, toIdx) {
+        const points = [];
         let currentT = 0;
-        const V_MAX_MS = V_MAX;
-        // 遍历区间 fromIdx 到 toIdx-1
         for (let i = fromIdx; i < toIdx; i++) {
             const seg = segData[i];
-            const { rawMove, t_acc, t_dec, t_cruise, V_peak, stopTime } = seg;
-            // 加速段 (0 -> V_peak)
+            const { t_acc, t_dec, t_cruise, V_peak, stopTime } = seg;
             if (t_acc > 0) {
-                // 模拟线性加速
                 const steps = 20;
                 for (let k = 0; k <= steps; k++) {
                     const ratio = k / steps;
-                    const t = currentT + ratio * t_acc;
-                    const v = ratio * V_peak;
-                    points.push({ t, v });
+                    points.push({ t: currentT + ratio * t_acc, v: ratio * V_peak });
                 }
                 currentT += t_acc;
             }
-            // 匀速段 (如果存在)
             if (t_cruise > 0) {
                 const steps = 10;
                 for (let k = 0; k <= steps; k++) {
                     const ratio = k / steps;
-                    const t = currentT + ratio * t_cruise;
-                    points.push({ t, v: V_peak });
+                    points.push({ t: currentT + ratio * t_cruise, v: V_peak });
                 }
                 currentT += t_cruise;
             }
-            // 减速段 (V_peak -> 0)
             if (t_dec > 0) {
                 const steps = 20;
                 for (let k = 0; k <= steps; k++) {
                     const ratio = k / steps;
-                    const t = currentT + ratio * t_dec;
-                    const v = V_peak * (1 - ratio);
-                    points.push({ t, v });
+                    points.push({ t: currentT + ratio * t_dec, v: V_peak * (1 - ratio) });
                 }
                 currentT += t_dec;
             }
-            // 停站（速度=0），持续 stopTime 秒（实际停站时间，不是分摊）
-            if (i < toIdx - 1) { // 不是最后一个区间，因为最后一个区间到达终点后不再停站
-                const stopDuration = stopTime; // 完整停站
-                if (stopDuration > 0) {
-                    const steps = 5;
-                    for (let k = 0; k <= steps; k++) {
-                        const ratio = k / steps;
-                        const t = currentT + ratio * stopDuration;
-                        points.push({ t, v: 0 });
-                    }
-                    currentT += stopDuration;
+            if (i < toIdx - 1 && stopTime > 0) {
+                const steps = 5;
+                for (let k = 0; k <= steps; k++) {
+                    const ratio = k / steps;
+                    points.push({ t: currentT + ratio * stopTime, v: 0 });
                 }
+                currentT += stopTime;
             }
         }
-        // 确保最后一点速度0
-        if (points.length > 0 && points[points.length-1].v !== 0) {
+        if (points.length > 0 && points[points.length - 1].v !== 0) {
             points.push({ t: currentT, v: 0 });
         }
+        return { points, totalT: currentT + 2 };
+    }
 
+    function niceStep(raw) {
+        if (!(raw > 0)) return 10;
+        const pow = Math.pow(10, Math.floor(Math.log10(raw)));
+        const norm = raw / pow;
+        const s = norm <= 1 ? 1 : (norm <= 2 ? 2 : (norm <= 5 ? 5 : 10));
+        return s * pow;
+    }
+
+    function drawSpeedCurve(fromIdx, toIdx) {
+        // 新查询重置视图
+        speedView.zoom = 1;
+        speedView.pan = 0;
+        lastSpeedPair = { from: fromIdx, to: toIdx };
+        renderSpeedChart();
+    }
+
+    function renderSpeedChart() {
+        const canvas = document.getElementById('speedCanvas');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const W = canvas.width, H = canvas.height;
+        ctx.clearRect(0, 0, W, H);
+
+        const { points, totalT } = buildSpeedPoints(lastSpeedPair.from, lastSpeedPair.to);
         if (points.length < 2) return;
+        const maxV = V_MAX * 1.1;
 
-        // 绘图
-        const maxV = V_MAX_MS * 1.1;
-        const totalT = currentT + 1;
-        const margin = { top: 20, bottom: 30, left: 40, right: 20 };
+        const windowT = totalT / speedView.zoom;
+        const maxPan = Math.max(0, totalT - windowT);
+        speedView.pan = Math.min(Math.max(speedView.pan, 0), maxPan);
+        const startT = speedView.pan;
+        speedCache = { totalT, windowT, startT };
+
+        const margin = { top: 22, bottom: 32, left: 46, right: 26 };
         const plotW = W - margin.left - margin.right;
         const plotH = H - margin.top - margin.bottom;
 
-        function toCanvas(t, v) {
-            const x = margin.left + (t / totalT) * plotW;
-            const y = margin.top + plotH - (v / maxV) * plotH;
-            return { x, y };
+        const tx = (t) => margin.left + ((t - startT) / windowT) * plotW;
+        const ty = (v) => margin.top + plotH - (v / maxV) * plotH;
+
+        // 自适应时间刻度：始终保持标签间距充足，长线不再密集
+        const tStep = niceStep(70 * windowT / plotW);
+        const vStep = niceStep(maxV / 6);
+
+        // 网格
+        ctx.strokeStyle = '#eee7f6';
+        ctx.lineWidth = 1;
+        for (let t = Math.floor(startT / tStep) * tStep; t <= startT + windowT + 1e-6; t += tStep) {
+            const x = tx(t);
+            if (x < margin.left - 1 || x > margin.left + plotW + 1) continue;
+            ctx.beginPath(); ctx.moveTo(x, margin.top); ctx.lineTo(x, margin.top + plotH); ctx.stroke();
+        }
+        for (let v = 0; v <= maxV + 1e-6; v += vStep) {
+            const y = ty(v);
+            if (y < margin.top - 1 || y > margin.top + plotH + 1) continue;
+            ctx.beginPath(); ctx.moveTo(margin.left, y); ctx.lineTo(margin.left + plotW, y); ctx.stroke();
         }
 
-        ctx.beginPath();
-        points.forEach((p, idx) => {
-            const { x, y } = toCanvas(p.t, p.v);
-            if (idx === 0) ctx.moveTo(x, y);
-            else ctx.lineTo(x, y);
-        });
-        ctx.strokeStyle = '#7B3F9F';
+        // 曲线
+        ctx.strokeStyle = '#6B3A8F';
         ctx.lineWidth = 2.5;
-        ctx.stroke();
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
+        let drawing = false;
+        ctx.beginPath();
+        for (const p of points) {
+            const x = tx(p.t);
+            if (x < margin.left - 2 || x > margin.left + plotW + 2) {
+                if (drawing) { ctx.stroke(); ctx.beginPath(); drawing = false; }
+                continue;
+            }
+            const y = ty(p.v);
+            if (!drawing) { ctx.moveTo(x, y); drawing = true; }
+            else ctx.lineTo(x, y);
+        }
+        if (drawing) ctx.stroke();
 
         // 坐标轴
-        ctx.strokeStyle = '#888';
-        ctx.lineWidth = 1;
+        ctx.strokeStyle = '#c9bddc';
+        ctx.lineWidth = 1.2;
         ctx.beginPath();
         ctx.moveTo(margin.left, margin.top);
         ctx.lineTo(margin.left, margin.top + plotH);
         ctx.lineTo(margin.left + plotW, margin.top + plotH);
         ctx.stroke();
 
-        // 标注
-        ctx.fillStyle = '#3b1f4a';
-        ctx.font = '12px sans-serif';
+        // 刻度标注
+        ctx.fillStyle = '#5f5377';
+        ctx.font = '11px sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('时间 (s)', margin.left + plotW/2, H - 4);
+        for (let t = Math.floor(startT / tStep) * tStep; t <= startT + windowT + 1e-6; t += tStep) {
+            const x = tx(t);
+            if (x < margin.left - 2 || x > margin.left + plotW + 2) continue;
+            ctx.fillText(t.toFixed(0), x, margin.top + plotH + 21);
+        }
+        ctx.textAlign = 'right';
+        for (let v = 0; v <= maxV + 1e-6; v += vStep) {
+            const y = ty(v);
+            if (y < margin.top - 2 || y > margin.top + plotH + 2) continue;
+            ctx.fillText(v.toFixed(0), margin.left - 6, y + 4);
+        }
+
+        // 轴标签
+        ctx.fillStyle = '#9a90ad';
+        ctx.textAlign = 'center';
+        ctx.fillText('时间 (s)', margin.left + plotW / 2, H - 3);
         ctx.save();
-        ctx.translate(14, margin.top + plotH/2);
-        ctx.rotate(-Math.PI/2);
-        ctx.textAlign = 'center';
+        ctx.translate(14, margin.top + plotH / 2);
+        ctx.rotate(-Math.PI / 2);
         ctx.fillText('速度 (m/s)', 0, 0);
         ctx.restore();
 
-        // 刻度值
-        ctx.textAlign = 'right';
-        for (let v = 0; v <= maxV; v += 5) {
-            const y = margin.top + plotH - (v / maxV) * plotH;
-            ctx.fillText(v.toFixed(0), margin.left-6, y+4);
+        // 缩放状态角标
+        if (speedView.zoom > 1.001) {
+            ctx.fillStyle = 'rgba(107,58,143,0.75)';
+            ctx.textAlign = 'left';
+            ctx.fillText('×' + speedView.zoom.toFixed(1), margin.left + 6, margin.top + 12);
         }
-        ctx.textAlign = 'center';
-        for (let t = 0; t <= totalT; t += 10) {
-            const x = margin.left + (t / totalT) * plotW;
-            ctx.fillText(t.toFixed(0), x, margin.top + plotH + 18);
+
+        // 触屏/光标联动：放大时才接管手势
+        canvas.style.touchAction = speedView.zoom > 1.001 ? 'none' : 'auto';
+        canvas.style.cursor = speedView.zoom > 1.001 ? 'grab' : 'default';
+        updateZoomUI();
+    }
+
+    function updateZoomUI() {
+        const zoomInBtn = document.getElementById('speedZoomIn');
+        const zoomOutBtn = document.getElementById('speedZoomOut');
+        const resetBtn = document.getElementById('speedZoomReset');
+        const hint = document.getElementById('speedHint');
+        if (zoomInBtn) zoomInBtn.disabled = speedView.zoom >= SPEED_ZOOM_MAX - 1e-6;
+        if (zoomOutBtn) zoomOutBtn.disabled = speedView.zoom <= SPEED_ZOOM_MIN + 1e-6;
+        if (resetBtn) resetBtn.disabled = speedView.zoom <= 1.001 && Math.abs(speedView.pan) < 1e-6;
+        if (hint) hint.textContent = speedView.zoom > 1.001 ? '滚轮缩放 · 拖动平移 · 双击复位' : '滚轮缩放查看细节';
+    }
+
+    function speedZoomIn() { zoomSpeed(1.4); }
+    function speedZoomOut() { zoomSpeed(1 / 1.4); }
+    function speedReset() {
+        speedView.zoom = 1;
+        speedView.pan = 0;
+        renderSpeedChart();
+    }
+    function zoomSpeed(f) {
+        const totalT = speedCache.totalT;
+        const windowT = totalT / speedView.zoom;
+        const center = speedCache.startT + windowT / 2;
+        const newZoom = Math.min(Math.max(speedView.zoom * f, SPEED_ZOOM_MIN), SPEED_ZOOM_MAX);
+        speedView.zoom = newZoom;
+        const newWindowT = totalT / newZoom;
+        speedView.pan = center - newWindowT / 2;
+        renderSpeedChart();
+    }
+
+    function attachSpeedControls() {
+        const canvas = document.getElementById('speedCanvas');
+        if (!canvas) return;
+        // 滚轮缩放：以光标所在时间为锚点
+        canvas.addEventListener('wheel', function (e) {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / (rect.width || 1)));
+            const totalT = speedCache.totalT;
+            const windowT = totalT / speedView.zoom;
+            const tCursor = speedCache.startT + ratio * windowT;
+            const newZoom = Math.min(Math.max(speedView.zoom * (e.deltaY < 0 ? 1.25 : 0.8), SPEED_ZOOM_MIN), SPEED_ZOOM_MAX);
+            speedView.zoom = newZoom;
+            const newWindowT = totalT / newZoom;
+            speedView.pan = tCursor - ratio * newWindowT;
+            renderSpeedChart();
+        }, { passive: false });
+
+        // 拖动平移（放大后可用）
+        let panning = false, downX = 0, downPan = 0, downId = null;
+        canvas.addEventListener('pointerdown', function (e) {
+            if (speedView.zoom <= 1.001) return;
+            panning = true;
+            downX = e.clientX;
+            downPan = speedView.pan;
+            downId = e.pointerId;
+            canvas.setPointerCapture(e.pointerId);
+            canvas.style.cursor = 'grabbing';
+            e.preventDefault();
+        });
+        canvas.addEventListener('pointermove', function (e) {
+            if (!panning || e.pointerId !== downId) return;
+            const dx = e.clientX - downX;
+            speedView.pan = downPan - (dx / (canvas.offsetWidth || 1)) * speedCache.windowT;
+            renderSpeedChart();
+        });
+        function endPan(e) {
+            if (e && e.pointerId !== downId) return;
+            panning = false;
+            canvas.style.cursor = speedView.zoom > 1.001 ? 'grab' : 'default';
         }
+        canvas.addEventListener('pointerup', endPan);
+        canvas.addEventListener('pointercancel', endPan);
+        canvas.addEventListener('dblclick', speedReset);
     }
 
     // ============================================================
@@ -964,6 +1115,7 @@
     window.onload = function() {
         populateSelects();
         calc();
+        attachSpeedControls();
         // 自动更新时刻表如果有输入
         document.getElementById('startTimeInput').addEventListener('change', calcTimes);
         document.getElementById('startTimeInput').addEventListener('input', calcTimes);
