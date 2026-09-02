@@ -5,28 +5,60 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
     <title>天津地铁8号线 · 运行计算器</title>
     <style>
+        :root {
+            --brand: #7a2ef2;
+            --brand-deep: #5b17c0;
+            --brand-soft: #efe4ff;
+            --ink: #241a36;
+            --ink-soft: #53486a;
+            --ink-faint: #7b7094;
+            --card: rgba(255,255,255,0.9);
+            --line: rgba(122,46,242,0.14);
+            --ring: rgba(122,46,242,0.45);
+        }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            background: #f3e8ff;
-            background-image: radial-gradient(circle at 10% 20%, #ede0ff 0%, #d9c4f0 100%);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", Roboto, "Helvetica Neue", Arial, sans-serif;
+            color: var(--ink);
             min-height: 100vh;
-            padding: 20px 16px 40px;
+            padding: clamp(16px, 4vw, 40px) 16px 48px;
             display: flex;
             justify-content: center;
             align-items: flex-start;
+            background-color: #f4ecff;
+            background-image:
+                radial-gradient(1100px 560px at 12% -8%, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0) 60%),
+                radial-gradient(880px 500px at 108% 8%, rgba(178,124,255,0.30) 0%, rgba(178,124,255,0) 55%),
+                radial-gradient(720px 720px at 50% 120%, rgba(216,182,255,0.38) 0%, rgba(216,182,255,0) 60%),
+                repeating-linear-gradient(135deg, rgba(108,43,217,0.035) 0px, rgba(108,43,217,0.035) 2px, transparent 2px, transparent 28px),
+                linear-gradient(160deg, #f6efff 0%, #e8d8fb 100%);
+            background-attachment: fixed;
         }
         .container {
+            position: relative;
             max-width: 720px;
             width: 100%;
-            background: rgba(255,255,255,0.92);
-            backdrop-filter: blur(2px);
-            border-radius: 36px;
-            padding: clamp(22px, 4vw, 44px);
-            box-shadow: 0 25px 50px -12px rgba(123, 63, 159, 0.30);
-            border: 1px solid rgba(255,255,255,0.5);
-            transition: all 0.3s;
+            background: var(--card);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-radius: 28px;
+            padding: clamp(24px, 4vw, 48px);
+            box-shadow:
+                0 1px 0 rgba(255,255,255,0.8) inset,
+                0 30px 60px -28px rgba(98,34,190,0.4),
+                0 8px 26px -14px rgba(60,20,120,0.2);
+            border: 1px solid rgba(255,255,255,0.7);
+            overflow: hidden;
             animation: fadeUp 0.6s ease-out;
+            transition: box-shadow 0.3s ease;
+        }
+        .container::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 5px;
+            background: linear-gradient(90deg, var(--brand) 0%, #a04bff 30%, #c08bff 55%, #a04bff 80%, var(--brand) 100%);
+            opacity: 0.95;
         }
         @keyframes fadeUp {
             0% { opacity: 0; transform: translateY(20px); }
@@ -35,34 +67,42 @@
         h1 {
             font-size: clamp(26px, 4.5vw, 38px);
             font-weight: 700;
-            color: #3b1f4a;
+            color: var(--ink);
             display: flex;
             align-items: center;
             gap: 10px;
             margin-bottom: 2px;
+            letter-spacing: 0.5px;
+            line-height: 1.2;
         }
         h1 small {
-            font-size: 16px;
-            font-weight: 400;
-            color: #7B3F9F;
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--brand);
             margin-left: 4px;
+            background: var(--brand-soft);
+            padding: 3px 12px;
+            border-radius: 20px;
+            white-space: nowrap;
         }
         .subtitle {
             font-size: 14px;
-            color: #5e4a6b;
-            margin-bottom: 24px;
-            padding-left: 14px;
-            border-left: 4px solid #7B3F9F;
-            background: #f7f0fc;
-            border-radius: 4px;
-            padding: 10px 16px;
+            color: var(--ink-soft);
+            margin-bottom: 26px;
+            border-left: 4px solid var(--brand);
+            background: linear-gradient(90deg, var(--brand-soft), rgba(239,228,255,0.4));
+            border-radius: 10px;
+            padding: 12px 16px;
             line-height: 1.6;
+            box-shadow: 0 1px 0 rgba(255,255,255,0.7) inset;
         }
+        .subtitle > span { font-size: 12.5px; color: var(--ink-faint); }
         .query-box {
-            background: #faf5ff;
-            border-radius: 24px;
+            background: linear-gradient(180deg, #fbf7ff, #f6efff);
+            border-radius: 22px;
             padding: 20px 18px 24px;
-            border: 1px solid #e6d5f0;
+            border: 1px solid var(--line);
+            box-shadow: 0 1px 0 rgba(255,255,255,0.8) inset;
         }
         .field-group {
             display: flex;
@@ -72,29 +112,33 @@
         }
         .field-group label {
             font-weight: 600;
-            font-size: 15px;
-            color: #3b1f4a;
+            font-size: 14.5px;
+            color: var(--ink);
             display: flex;
             align-items: center;
             gap: 6px;
         }
         .field-group select, .field-group input {
-            padding: 12px 16px;
-            border-radius: 16px;
-            border: 1.5px solid #dcc8e8;
+            padding: 13px 44px 13px 16px;
+            border-radius: 15px;
+            border: 1.5px solid #dccbe9;
             background: white;
             font-size: 16px;
             color: #1f1a2b;
-            transition: 0.2s;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
             appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237B3F9F' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237a2ef2' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
             background-repeat: no-repeat;
             background-position: right 16px center;
             cursor: pointer;
+            box-shadow: 0 1px 2px rgba(60,20,120,0.04);
+        }
+        .field-group select:hover, .field-group input:hover {
+            border-color: #c2a4e0;
         }
         .field-group select:focus, .field-group input:focus {
-            border-color: #7B3F9F;
-            box-shadow: 0 0 0 4px rgba(123, 63, 159, 0.15);
+            border-color: var(--brand);
+            box-shadow: 0 0 0 4px rgba(122, 46, 242, 0.16);
             outline: none;
         }
         .flex-row {
@@ -113,89 +157,108 @@
             font-size: 17px;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: transform 0.18s ease, box-shadow 0.25s ease, background 0.25s ease, filter 0.2s ease;
             display: inline-flex;
             align-items: center;
             justify-content: center;
             gap: 8px;
+            touch-action: manipulation;
+        }
+        .btn:focus-visible {
+            outline: 3px solid var(--ring);
+            outline-offset: 2px;
         }
         .btn-primary {
-            background: linear-gradient(135deg, #7B3F9F, #9B59B6);
+            background: linear-gradient(135deg, #7a2ef2, #a64dff);
             color: white;
-            box-shadow: 0 8px 20px rgba(123, 63, 159, 0.35);
+            box-shadow: 0 10px 24px -10px rgba(108, 43, 217, 0.55);
             flex: 1;
         }
-        .btn-primary:hover { transform: scale(0.98); box-shadow: 0 4px 12px rgba(123,63,159,0.4); }
-        .btn-secondary {
-            background: #ede0f5;
-            color: #3b1f4a;
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 14px 30px -12px rgba(108, 43, 217, 0.6);
+            filter: saturate(1.05);
         }
-        .btn-secondary:hover { background: #dcc8e8; }
+        .btn-primary:active { transform: translateY(0) scale(0.99); }
+        .btn-secondary {
+            background: #f0e6fb;
+            color: var(--ink);
+            box-shadow: inset 0 0 0 1px rgba(122,46,242,0.10);
+        }
+        .btn-secondary:hover { background: #e4d5f7; transform: translateY(-1px); }
         .btn-copy {
             background: #eaf3ff;
             color: #1a3f6b;
+            box-shadow: inset 0 0 0 1px rgba(33,95,180,0.10);
         }
-        .btn-copy:hover { background: #d4e2f7; }
+        .btn-copy:hover { background: #d9e9fb; transform: translateY(-1px); }
         .result-area {
             margin-top: 28px;
             background: #ffffff;
-            border-radius: 24px;
-            padding: 20px 20px 18px;
-            border: 1px solid #eddff5;
-            box-shadow: 0 4px 12px rgba(123,63,159,0.06);
+            border-radius: 22px;
+            padding: 20px 22px 18px;
+            border: 1px solid #e9dcf6;
+            box-shadow: 0 6px 20px -12px rgba(98,34,190,0.18);
         }
         .result-row {
             display: flex;
             justify-content: space-between;
             align-items: baseline;
-            padding: 8px 0;
-            border-bottom: 1px dashed #f0e6f5;
+            padding: 9px 2px;
+            border-bottom: 1px dashed #f0e6f7;
         }
         .result-row:last-child { border-bottom: none; }
-        .result-label { font-size: 15px; color: #4d3a5c; }
-        .result-value { font-weight: 600; font-size: 20px; color: #2d1a3a; }
-        .result-value.time { font-size: clamp(22px, 4vw, 34px); color: #7B3F9F; letter-spacing: 0.5px; }
-        .result-value .unit { font-size: 15px; font-weight: 400; color: #7a658a; margin-left: 4px; }
+        .result-label { font-size: 15px; color: var(--ink-soft); }
+        .result-value { font-weight: 700; font-size: 20px; color: var(--ink); font-variant-numeric: tabular-nums; }
+        .result-value.time {
+            font-size: clamp(24px, 4.5vw, 36px);
+            color: var(--brand-deep);
+            letter-spacing: 0.5px;
+            font-weight: 800;
+        }
+        .result-value .unit { font-size: 15px; font-weight: 400; color: var(--ink-faint); margin-left: 4px; }
         .section-title {
             font-size: 18px;
             font-weight: 600;
-            color: #3b1f4a;
+            color: var(--ink);
             margin: 20px 0 12px;
             display: flex;
             align-items: center;
             gap: 10px;
         }
-        .section-title span { font-size: 14px; font-weight: 400; color: #7a658a; }
+        .section-title span { font-size: 14px; font-weight: 400; color: var(--ink-faint); }
         .time-table {
             background: #faf5ff;
-            border-radius: 16px;
-            padding: 12px 16px;
+            border-radius: 15px;
+            padding: 10px 14px;
             max-height: 200px;
             overflow-y: auto;
             font-size: 15px;
-            border: 1px solid #eddff5;
+            border: 1px solid #eadcf7;
         }
         .time-table table { width: 100%; border-collapse: collapse; }
-        .time-table th { text-align: left; font-weight: 600; color: #3b1f4a; padding: 6px 4px; border-bottom: 2px solid #dcc8e8; }
-        .time-table td { padding: 6px 4px; border-bottom: 1px solid #ede0f5; }
+        .time-table th { text-align: left; font-weight: 600; color: var(--ink); padding: 7px 4px; border-bottom: 2px solid #d8c4ee; }
+        .time-table td { padding: 7px 4px; border-bottom: 1px solid #f0e6f9; }
         .time-table tr:last-child td { border-bottom: none; }
+        .time-table tbody tr { transition: background 0.15s ease; }
+        .time-table tbody tr:hover { background: rgba(122, 46, 242, 0.06); }
         .canvas-wrapper {
-            background: #f7f0fc;
-            border-radius: 16px;
+            background: #faf5ff;
+            border-radius: 15px;
             padding: 12px;
             margin-top: 12px;
-            border: 1px solid #eddff5;
+            border: 1px solid #eadcf7;
             overflow-x: auto;
         }
-        canvas { display: block; width: 100%; height: auto; background: white; border-radius: 12px; }
+        canvas { display: block; width: 100%; height: auto; background: white; border-radius: 12px; box-shadow: 0 2px 6px rgba(60,20,120,0.06); }
         .formula-box {
-            background: #f7f0fc;
-            border-radius: 16px;
+            background: var(--brand-soft);
+            border-radius: 15px;
             padding: 14px 18px;
             margin-top: 16px;
-            border-left: 4px solid #7B3F9F;
+            border-left: 4px solid var(--brand);
             font-size: 14px;
-            color: #2d1a3a;
+            color: var(--ink);
             line-height: 1.8;
             white-space: pre-wrap;
             word-break: break-word;
@@ -204,12 +267,12 @@
         .formula-box.show { display: block; animation: fadeUp 0.3s; }
         .copy-area {
             background: #f7faff;
-            border-radius: 12px;
+            border-radius: 13px;
             padding: 12px 16px;
             margin-top: 12px;
-            border: 1px dashed #b8a0c9;
+            border: 1px dashed #a4a7d8;
             font-size: 13px;
-            color: #4d3a5c;
+            color: var(--ink-soft);
             white-space: pre-wrap;
             word-break: break-all;
             display: none;
@@ -221,16 +284,17 @@
             margin-top: 28px;
             text-align: center;
             font-size: 13px;
-            color: #7a658a;
-            border-top: 1px solid #ede0f5;
+            color: var(--ink-faint);
+            border-top: 1px solid #ede4f6;
             padding-top: 18px;
         }
-        .footer a { color: #7B3F9F; text-decoration: none; font-weight: 500; }
+        .footer a { color: var(--brand); text-decoration: none; font-weight: 500; }
+        .footer a:hover { text-decoration: underline; }
         .badge {
-            background: #ede0f5;
-            color: #3b1f4a;
+            background: var(--brand-soft);
+            color: var(--ink);
             font-size: 12px;
-            padding: 2px 14px;
+            padding: 3px 14px;
             border-radius: 30px;
             font-weight: 500;
         }
@@ -239,25 +303,37 @@
         /* ===== 双端适配：移动端 / 平板 / PC ===== */
         /* 平板及以上：加宽容器 */
         @media (min-width: 640px) {
-            .container { max-width: 860px; }
+            .container { max-width: 880px; }
             .flex-row { gap: 16px; }
+            .query-box { padding: 24px 22px 28px; }
         }
         /* PC/桌面：更舒展的版心与排版 */
         @media (min-width: 1024px) {
-            .container { max-width: 1080px; }
+            .container { max-width: 1120px; }
             .subtitle { font-size: 15px; }
-            .query-box { padding: 26px 24px 30px; }
-            .btn { font-size: 18px; padding: 15px 28px; }
+            .query-box { padding: 28px 26px 32px; }
+            .btn { font-size: 18px; padding: 15px 30px; }
             .section-title { font-size: 20px; }
             .result-label { font-size: 16px; }
             .result-value { font-size: 22px; }
+            .result-value.time { font-size: clamp(26px, 3.4vw, 40px); }
+            .time-table { max-height: 260px; }
         }
         /* 移动端：紧凑收边，保持单手可操作 */
         @media (max-width: 480px) {
-            .container { padding: 16px 12px; border-radius: 24px; }
+            .container { padding: 16px 12px; border-radius: 22px; }
             .result-value.time { font-size: 24px; }
-            h1 small { display: block; margin-left: 0; }
+            h1 { font-size: 24px; }
+            h1 small { display: block; margin-left: 0; width: max-content; margin-top: 4px; }
             .field-group select, .field-group input { font-size: 16px; }
+            .subtitle > span { display: block; margin-top: 4px; }
+        }
+        /* 尊重系统"减弱动效"偏好 */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.001s !important;
+                transition-duration: 0.001s !important;
+            }
         }
     </style>
 </head>
